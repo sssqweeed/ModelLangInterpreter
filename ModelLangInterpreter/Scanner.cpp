@@ -4,6 +4,7 @@ Scanner::Scanner(const char* program){
     if(!(fp = fopen(program, "r"))){
         throw "can’t open file";
     }
+    num_of_row_in_file = 1;
 }
 
 int Scanner::look(const std::string buf, const char** list){
@@ -18,6 +19,9 @@ int Scanner::look(const std::string buf, const char** list){
 
 void Scanner::get_next_char_from_file(){
     c = fgetc(fp);
+    if (c == '\n') {
+        num_of_row_in_file++;
+    }
 }
 
 Lex Scanner::get_lex(){
@@ -75,7 +79,7 @@ Lex Scanner::get_lex(){
                 else{
                     buf.push_back(c);
                     if((num_row_table = look(buf, TD))){
-                        return Lex((type_of_lex)(num_row_table +(int)LEX_FIN), num_row_table);
+                        return Lex((type_of_lex)(num_row_table +(int)LEX_FIN), num_row_table, num_of_row_in_file);
                     }
                     else
                         throw c;
@@ -83,17 +87,16 @@ Lex Scanner::get_lex(){
                 break;
             
             case STRING:
-                if(c != '"'){
+                if(c != '"' and c != '@' and c != '\n'){
                     buf.push_back(c);
                 }
                 else{
-                    if(c == '@'){
+                    if(c == '@' or c == '\n'){
                         throw c;
                     }
                     else{
                         string_data.push_back(buf);
-                        return Lex(LEX_STRING_DATA, string_data.size());
-                        
+                        return Lex(LEX_STRING_DATA, string_data.size(), num_of_row_in_file);
                     }
                 }
                 break;
@@ -105,11 +108,11 @@ Lex Scanner::get_lex(){
                 else {
                     ungetc(c, fp);
                     if((num_row_table = look(buf, TW))){
-                        return Lex((type_of_lex)num_row_table, num_row_table);
+                        return Lex((type_of_lex)num_row_table, num_row_table, num_of_row_in_file);
                     }
                     else {
                         num_row_table = put(buf);
-                        return Lex(LEX_ID, num_row_table);
+                        return Lex(LEX_ID, num_row_table, num_of_row_in_file);
                     }
                 }
                 break;
@@ -120,7 +123,7 @@ Lex Scanner::get_lex(){
                 }
                 else {
                     ungetc(c, fp);
-                    return Lex(LEX_NUM, digit);
+                    return Lex(LEX_NUM, digit, num_of_row_in_file);
                 }
                 break;
                 
@@ -131,7 +134,7 @@ Lex Scanner::get_lex(){
                 else{
                     ungetc(c, fp);
                     if((num_row_table = look(buf, TD))){
-                        return Lex((type_of_lex)(num_row_table +(int)LEX_FIN), num_row_table);
+                        return Lex((type_of_lex)(num_row_table +(int)LEX_FIN), num_row_table, num_of_row_in_file);
                     }
                     else
                         throw c;
@@ -154,19 +157,19 @@ Lex Scanner::get_lex(){
                 if(c == '='){
                     buf.push_back(c);
                     num_row_table = look(buf, TD);
-                    return Lex((type_of_lex)(num_row_table +(int)LEX_FIN), num_row_table);
+                    return Lex((type_of_lex)(num_row_table +(int)LEX_FIN), num_row_table, num_of_row_in_file);
                 }
                 else {
                     ungetc(c, fp);
                     num_row_table = look(buf, TD);
-                    return Lex((type_of_lex)(num_row_table +(int)LEX_FIN), num_row_table);
+                    return Lex((type_of_lex)(num_row_table +(int)LEX_FIN), num_row_table, num_of_row_in_file);
                 }
                 break;
             case NEQ:
                 if(c == '='){
                     buf.push_back(c);
                     num_row_table = look(buf, TD);
-                    return Lex(LEX_NEQ, num_row_table);
+                    return Lex(LEX_NEQ, num_row_table, num_of_row_in_file);
                 }
                 else
                     throw '!';
@@ -188,7 +191,7 @@ unsigned long Scanner::put(const std::string & buf){
 const char* Scanner::TW[] = {
     "", "and", "bool", "do", "else",
     "if", "false", "int", "not", "or", "program",
-    "read", "true", "while", "write", "string", "struct", "goto", "break", NULL
+    "read", "true", "while", "for", "write", "string", "struct", "goto", "break", NULL
 };
 
 const char* Scanner::TD[] = {
@@ -216,6 +219,6 @@ std::ostream & operator<<(std::ostream &s, Lex l){
         t = "STRING_DATA";
     else
         throw l;
-    s << '(' << t << ',' << l.v_lex << ");" << std::endl;
+    s << '(' << t << ',' << l.v_lex << ");" << "line: " << l.num_row_in_file <<std::endl;
     return s;
 }

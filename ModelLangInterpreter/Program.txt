@@ -1,12 +1,8 @@
 program
 {
-    /* int GVA = 0;
-    int a=51,b=6,c;
-    bool flag = false;
-        */
     string x = "abc", y, z = "abcd";
     c=(a+b)/2*2;
-    if(c>=100 or x==z) {
+    if((c>=100) or (x==z)) {
         read (y);
         write (y);
         write(x+y+z,c);
@@ -20,6 +16,12 @@ program
         break;
     }
     write (x);
+    
+    for(x = 0;;){
+        goto fin;
+        break;
+        
+    }
     
     goto fin;
     

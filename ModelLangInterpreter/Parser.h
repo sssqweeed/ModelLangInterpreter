@@ -4,7 +4,7 @@
 class Parser{
 private:
     
-    Lex curr_lex; // текущая лексема
+    Lex curr_lex;
     type_of_lex c_type;
     unsigned long c_val;
     Scanner scan;
@@ -21,8 +21,15 @@ private:
     void constant();
     void constant_string();
     void constant_int();
+    void S(bool flag = true);
+    bool E();
+    bool E1();
+    bool T();
+    bool F();
+    
     
 public:
+    Parser(const char* file_name);
     
     void analyze();
 };

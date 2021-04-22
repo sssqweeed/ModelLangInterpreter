@@ -9,6 +9,7 @@ private:
     FILE * fp;
     char c;
     
+    long num_of_row_in_file;
     /// Search for buf in the list
     int look(const std::string buf, const char** list);
     
