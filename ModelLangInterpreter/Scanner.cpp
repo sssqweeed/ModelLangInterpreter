@@ -4,7 +4,7 @@ Scanner::Scanner(const char* program){
     if(!(fp = fopen(program, "r"))){
         throw "can’t open file";
     }
-    num_of_row_in_file = 1;
+    num_of_row_in_file = 0;
 }
 
 int Scanner::look(const std::string buf, const char** list){
@@ -221,4 +221,9 @@ std::ostream & operator<<(std::ostream &s, Lex l){
         throw l;
     s << '(' << t << ',' << l.v_lex << ");" << "line: " << l.num_row_in_file <<std::endl;
     return s;
+}
+
+
+Scanner::~Scanner(){
+    TID.clear();
 }

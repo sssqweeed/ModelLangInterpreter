@@ -1,11 +1,11 @@
 #include "Parser.h"
 #include <string>
 
-Parser::Parser(const char* file_name): scan(file_name) {  }
+Parser::Parser(const char* file_name_): scan(file_name_), file_name(file_name_) {  }
 
 void Parser::get_next_lex(){
     try{
-    curr_lex = scan.get_lex();
+        curr_lex = scan.get_lex();
     } catch(char c) {
         std::cout << "Unexpected character " << c << "\n";
     }
@@ -15,6 +15,8 @@ void Parser::get_next_lex(){
 
 void Parser::analyze(){
     try {
+        find_marks();
+        
         get_next_lex();
         program();
         if (c_type != LEX_FIN){
@@ -42,7 +44,6 @@ void Parser::program(){
         
         operators();
         
-        //get_next_lex();
         if (c_type != LEX_END){
             throw "Expected '}' but we have lex with id " + std::to_string(c_type);
         }
@@ -51,9 +52,11 @@ void Parser::program(){
 }
 
 void Parser::definitions(){
-    
     while (c_type == LEX_INT or c_type == LEX_BOOL or
            c_type == LEX_STRING or c_type == LEX_STRUCT) {
+        
+        set_type_def(c_type);
+        
         get_next_lex();
         variable();
         
@@ -62,10 +65,36 @@ void Parser::definitions(){
             variable();
         }
         
-        if (c_type != LEX_SEMICOLON){
+        if (c_type != LEX_SEMICOLON) {
             throw "Expected ';' but we have lex with id " + std::to_string(c_type);
         }
         get_next_lex();
+    }
+}
+
+void Parser::variable(){
+    if (c_type != LEX_ID) {
+        throw "Expected ID but we have lex with id " + std::to_string(c_type);
+    }
+    
+    if (is_redefinition(curr_lex)){
+        throw "Redefinition ID with num in TID " + std::to_string(c_val);
+    }
+    
+    scan.TID[c_val].put_declare();
+    scan.TID[c_val].put_type(get_cur_type_def());
+    
+    current_id = c_val;
+    
+    get_next_lex();
+    if (c_type == LEX_ASSIGN) {
+        scan.TID[current_id].put_assign();
+        get_next_lex();
+        constant();
+        get_next_lex();
+    }
+    else {
+        scan.TID[current_id].put_value(-1);
     }
 }
 
@@ -75,11 +104,75 @@ void Parser::operators(){
            c_type == LEX_WRITE or c_type == LEX_IF or c_type == LEX_ID) {
         
         S();
-        //get_next_lex();
     }
 }
 
+bool Parser::is_redefinition(Lex lex){
+    auto num_in_TID = lex.get_value();
+    if (num_in_TID == scan.TID.size() - 1){
+        return false;
+    } else {
+        return true;
+    }
+}
 
+void Parser::constant(){
+    
+    auto type = get_cur_type_def();
+    
+    if (c_type == LEX_STRING_DATA){
+        if (type != LEX_STRING){
+            throw std::string("Unexpected string declaration");
+        }
+        
+        scan.TID[current_id].put_value(scan.string_data.size());
+        
+    } else if (c_type == LEX_MINUS or c_type == LEX_PLUS){
+        get_next_lex();
+        
+        long long value;
+        
+        if (c_type == LEX_MINUS) {
+            value = -1;
+        }
+        else {
+            value = 1;
+        }
+        
+        if (c_type == LEX_NUM){
+            
+            value = value * c_val;
+            
+            scan.TID[current_id].put_value(value);
+            
+            if (type != LEX_INT){
+                throw std::string("Unexpected number declaration");
+            }
+        } else {
+            throw "Expected number but we have lex with id " + std::to_string(c_type);
+        }
+    } else if (c_type == LEX_NUM){
+        if (type != LEX_INT){
+            throw std::string("Unexpected number declaration");
+        }
+        scan.TID[current_id].put_value(c_val);
+        
+    } else if (c_type == LEX_FALSE or c_type == LEX_TRUE){
+        if (type != LEX_BOOL){
+            throw std::string("Unexpected true/false declaration");
+        }
+        
+        if (c_type == LEX_FALSE) {
+            scan.TID[current_id].put_value(0);
+        }
+        else {
+            scan.TID[current_id].put_value(1);
+        }
+        
+    } else {
+        throw "Expected constant but we have lex with id " + std::to_string(c_type);
+    }
+}
 
 void Parser::S(bool flag){
     
@@ -131,6 +224,7 @@ void Parser::S(bool flag){
                 S();
                 break;
             case LEX_WHILE:
+                cycle_depth++;
                 get_next_lex();
                 if (c_type != LEX_LPAREN){
                     throw "Expected '(' but we have lex with id " + std::to_string(c_type);
@@ -144,9 +238,10 @@ void Parser::S(bool flag){
                 get_next_lex();
                 
                 S();
-                
+                cycle_depth--;
                 break;
             case LEX_FOR:
+                cycle_depth++;
                 get_next_lex();
                 if (c_type != LEX_LPAREN){
                     throw "Expected '(' but we have lex with id " + std::to_string(c_type);
@@ -172,16 +267,19 @@ void Parser::S(bool flag){
                 get_next_lex();
                 
                 S();
-                
+                cycle_depth--;
                 break;
             case LEX_BREAK:
+                
+                if (cycle_depth == 0) {
+                    throw "Unexpected 'break' " + std::to_string(c_type);
+                }
                 get_next_lex();
                 
                 if (c_type != LEX_SEMICOLON){
                     throw "Expected ';' but we have lex with id " + std::to_string(c_type);
                 }
                 get_next_lex();
-                
                 break;
             case LEX_GOTO:
                 get_next_lex();
@@ -261,13 +359,25 @@ void Parser::S(bool flag){
                 
             default:
                 // {_E=_}E
-                bool result_is_id;
-                for (int iteration = 0; (result_is_id = E()); iteration++) {
+                type_ID type;
+                for (int iteration = 0; (type = E()) != not_reference_to_ID; iteration++) {
+                    
+                    if (type == undeclared) {
+                        throw "Undeclared ID " + std::to_string(c_type);
+                    }
                     
                     if (c_type == LEX_ASSIGN) {
                         //E=E=E...
+                        if (type != normal){
+                            throw std::string("Unexpected assign ");
+                        }
                     } else if (c_type == LEX_COLON) {
                         //ID:operator
+                        
+                        if (type != mark) {
+                            throw "Unexpected ':' after non-mark ID " + std::to_string(c_type);
+                        }
+                        
                         get_next_lex();
                         S();
                         return;
@@ -288,8 +398,8 @@ void Parser::S(bool flag){
         }
     
     else {
-        bool result_is_id;
-        while ((result_is_id = E()) and c_type == LEX_ASSIGN) {
+        type_ID type;
+        while ((type = E()) == normal and c_type == LEX_ASSIGN) {
             get_next_lex();
         }
     }
@@ -297,47 +407,59 @@ void Parser::S(bool flag){
 
 
 
-bool Parser::E(){
-    bool is_id = E1();
+Parser::type_ID Parser::E(){
+    type_ID type = E1();
     if (c_type == LEX_EQ or c_type == LEX_NEQ or c_type == LEX_GEQ or c_type == LEX_LEQ or c_type == LEX_LSS or c_type == LEX_GTR) {
         get_next_lex();
         E1();
-        
-        is_id = false;
+        type = not_reference_to_ID;
     }
     
-    return is_id;
+    return type;
 }
 
-bool Parser::E1(){
-    bool is_id = T();
+Parser::type_ID Parser::E1(){
+    type_ID type = T();
     while (c_type == LEX_PLUS or c_type == LEX_MINUS or c_type == LEX_OR){
         get_next_lex();
         T();
         
-        is_id = false;
+        type = not_reference_to_ID;
     }
     
-    return is_id;
+    return type;
 }
 
-bool Parser::T(){
-    bool is_id = F();
+Parser::type_ID Parser::T(){
+    type_ID type = F();
     while (c_type == LEX_SLASH or c_type == LEX_AND or c_type == LEX_TIMES) {
         get_next_lex();
         F();
         
-        is_id = false;
+        type = not_reference_to_ID;
     }
     
-    return is_id;
+    return type;
 }
 
-bool Parser::F(){
-    bool is_id = false;
+Parser::type_ID Parser::F(){
+    type_ID type = not_reference_to_ID;
     if (c_type == LEX_ID) {
+    
+        if(!scan.TID[c_val].get_declare()){
+            // mark?
+            auto iterator = std::find(marks.begin(), marks.end(), scan.TID[c_val]);
+            if(iterator != marks.end()){
+                type = mark;
+            } else {
+                type = undeclared;
+                //throw "Undeclared ID " + std::to_string(c_type);
+            }
+        } else {
+            type = normal;
+        }
+        
         get_next_lex();
-        is_id = true;
     } else if (c_type == LEX_NUM) {
         get_next_lex();
     } else if (c_type == LEX_TRUE) {
@@ -348,7 +470,7 @@ bool Parser::F(){
             get_next_lex();
     } else if (c_type == LEX_NOT) {
         get_next_lex();
-        F ();
+        F();
     } else if (c_type == LEX_LPAREN) {
         get_next_lex();
         E();
@@ -357,36 +479,46 @@ bool Parser::F(){
         } else {
             throw "Expected ')' but we have lex with id " + std::to_string(c_type);;
         }
+    } else {
+        throw "Unxpected lex with id " + std::to_string(c_type);
     }
     
-    return is_id;
+    return type;
 }
 
-void Parser::variable(){
-    if (c_type != LEX_ID) {
-        throw "Expected ID but we have lex with id " + std::to_string(c_type);
-    }
-    get_next_lex();
-    if (c_type == LEX_ASSIGN) {
-        get_next_lex();
-        constant();
-        get_next_lex();
-    }
+type_of_lex Parser::get_cur_type_def() const {
+    return type_def;
 }
 
-void Parser::constant(){
-    if (c_type == LEX_STRING_DATA){
-        
-    } else if (c_type == LEX_MINUS or c_type == LEX_PLUS){
-        get_next_lex();
-        if (c_type == LEX_NUM){
+void Parser::set_type_def(const type_of_lex type){
+    type_def = type;
+}
+
+
+void Parser::find_marks(){
+    Scanner scan(file_name);
+    type_of_lex cur_lex = scan.get_lex().get_type(), prev_lex;
+    
+    //empty file
+    if(cur_lex == LEX_FIN){
+        return;
+    }
+    
+    prev_lex = cur_lex;
+    
+    while((cur_lex = scan.get_lex().get_type()) != LEX_FIN){
+        if(cur_lex == LEX_COLON and prev_lex == LEX_ID){
             
+            auto iter = std::find(marks.begin(), marks.end(), scan.TID[scan.TID.size() - 1]);
+            
+            if (iter != marks.end()){
+                throw std::string("Identical marks found ");
+            }
+            
+            marks.push_back(scan.TID[scan.TID.size() - 1]);
         }
-    } else if (c_type == LEX_NUM){
-        
-    } else if (c_type == LEX_FALSE or c_type == LEX_TRUE){
-        
-    } else {
-        throw "Expected constant but we have lex with id " + std::to_string(c_type);
+        prev_lex = cur_lex;
     }
+    
+    return;
 }

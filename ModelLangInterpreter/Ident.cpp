@@ -15,6 +15,10 @@ bool Ident::operator==(const std::string& s) const {
     return name == s;
 }
 
+bool Ident::operator==(const Ident& ID) const {
+    return name == ID.get_name();
+}
+
 std::string Ident::get_name() const {
     return name;
 }
@@ -36,9 +40,9 @@ bool Ident::get_assign() const {
 void Ident::put_assign() {
     assign = true;
 }
-int Ident::get_value() const {
+unsigned long Ident::get_value() const {
     return value;
 }
-void Ident::put_value(int v) {
+void Ident::put_value(unsigned long v) {
     value = v;
 }

@@ -7,7 +7,7 @@ class Ident {
     bool declare;
     type_of_lex type;
     bool assign;
-    int value;
+    long long value;
     
 public:
     Ident();
@@ -15,6 +15,9 @@ public:
     Ident(const std::string n);
     
     bool operator==(const std::string& s) const ;
+    
+    bool operator==(const Ident& ID) const ;
+    
     
     std::string get_name() const;
     
@@ -30,7 +33,7 @@ public:
     
     void put_assign();
     
-    int get_value()const;
+    unsigned long get_value() const;
     
-    void put_value(int v);
+    void put_value(unsigned long v);
 };

@@ -20,7 +20,7 @@ int main(){
     parser.analyze();
     
     
-    return 0;
-    
-    
+    // УБРАТЬ PUBLIC!!!
+    parser.scan.TID;
+    return 0;  
 }
