@@ -535,12 +535,12 @@ Parser::type_ID Parser::F(){
         lex_stack.push(LEX_STRING);
         get_next_lex();
     } else if (c_type == LEX_NOT) {
+        get_next_lex();
+        F();
         //check not
         if (lex_stack.top() != LEX_BOOL){
             throw std::string("'Not' operation is not applicable to this type ");
         }
-        get_next_lex();
-        F();
     } else if (c_type == LEX_LPAREN) {
         get_next_lex();
         E();
