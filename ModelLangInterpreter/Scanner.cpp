@@ -1,7 +1,7 @@
 #include "Scanner.h"
 
 Scanner::Scanner(const char* program){
-    if(!(fp = fopen(program, "r"))){
+    if (!(fp = fopen(program, "r"))){
         throw "can’t open file";
     }
     num_of_row_in_file = 0;
@@ -45,56 +45,46 @@ Lex Scanner::get_lex(){
     state current_state = H;
     do {
         get_next_char_from_file();
-        switch(current_state){
+        switch (current_state){
             case H:
-                if(c == ' ' || c == '\n' || c== '\r' || c == '\t'){
+                if (c == ' ' || c == '\n' || c == '\r' || c == '\t'){
                     //do nothing
-                }
-                else if(isalpha(c)){
+                } else if (isalpha(c)){
                     buf.push_back(c);
                     current_state = IDENT;
-                }
-                else if(isdigit(c)){
+                } else if (isdigit(c)){
                     digit = c - '0';
                     current_state = NUMB;
-                }
-                else if(c == '=' || c == '<' || c == '>'){
+                } else if (c == '=' || c == '<' || c == '>'){
                     buf.push_back(c);
                     current_state = ALE;
-                }
-                else if(c == '@'){
+                } else if (c == '@'){
                     return Lex(LEX_FIN);
-                }
-                else if(c == '!'){
+                } else if (c == '!'){
                     buf.push_back(c);
                     current_state = NEQ;
-                }
-                else if(c == '/'){
+                } else if (c == '/'){
                     buf.push_back(c);
                     current_state = COM_OR_DIV;
-                }
-                else if(c == '"'){
+                } else if (c == '"'){
                     current_state = STRING;
-                }
-                else{
+                } else {
                     buf.push_back(c);
                     if((num_row_table = look(buf, TD))){
                         return Lex((type_of_lex)(num_row_table +(int)LEX_FIN), num_row_table, num_of_row_in_file);
-                    }
-                    else
+                    } else {
                         throw c;
+                    }
                 }
                 break;
             
             case STRING:
-                if(c != '"' and c != '@' and c != '\n'){
+                if (c != '"' and c != '@' and c != '\n'){
                     buf.push_back(c);
-                }
-                else{
-                    if(c == '@' or c == '\n'){
+                } else{
+                    if (c == '@' or c == '\n'){
                         throw c;
-                    }
-                    else{
+                    } else {
                         string_data.push_back(buf);
                         return Lex(LEX_STRING_DATA, string_data.size(), num_of_row_in_file);
                     }
@@ -102,15 +92,13 @@ Lex Scanner::get_lex(){
                 break;
                 
             case IDENT:
-                if(isalpha(c)|| isdigit(c)){
+                if (isalpha(c)|| isdigit(c)){
                     buf.push_back(c);
-                }
-                else {
+                } else {
                     ungetc(c, fp);
-                    if((num_row_table = look(buf, TW))){
+                    if ((num_row_table = look(buf, TW))){
                         return Lex((type_of_lex)num_row_table, num_row_table, num_of_row_in_file);
-                    }
-                    else {
+                    } else {
                         num_row_table = put(buf);
                         return Lex(LEX_ID, num_row_table, num_of_row_in_file);
                     }
@@ -118,10 +106,9 @@ Lex Scanner::get_lex(){
                 break;
                 
             case NUMB:
-                if(isdigit(c)){
+                if (isdigit(c)){
                     digit = digit * 10 + (c - '0');
-                }
-                else {
+                } else {
                     ungetc(c, fp);
                     return Lex(LEX_NUM, digit, num_of_row_in_file);
                 }
@@ -130,31 +117,29 @@ Lex Scanner::get_lex(){
             case COM_OR_DIV:
                 if(c == '*'){
                     current_state = COM;
-                }
-                else{
+                } else {
                     ungetc(c, fp);
-                    if((num_row_table = look(buf, TD))){
+                    if ((num_row_table = look(buf, TD))){
                         return Lex((type_of_lex)(num_row_table +(int)LEX_FIN), num_row_table, num_of_row_in_file);
-                    }
-                    else
+                    } else {
                         throw c;
+                    }
                 }
                 break;
                 
             case COM:
-                if(c == '*'){
+                if (c == '*'){
                     get_next_char_from_file();
-                    if(c == '/'){
+                    if (c == '/'){
                         buf = "";
                         current_state = H;
                     }
-                }
-                else if(c == '@' || c == '{')
+                } else if(c == '@' || c == '{')
                     throw c;
                 break;
              
             case ALE:
-                if(c == '='){
+                if (c == '='){
                     buf.push_back(c);
                     num_row_table = look(buf, TD);
                     return Lex((type_of_lex)(num_row_table +(int)LEX_FIN), num_row_table, num_of_row_in_file);
@@ -166,13 +151,13 @@ Lex Scanner::get_lex(){
                 }
                 break;
             case NEQ:
-                if(c == '='){
+                if (c == '='){
                     buf.push_back(c);
                     num_row_table = look(buf, TD);
                     return Lex(LEX_NEQ, num_row_table, num_of_row_in_file);
-                }
-                else
+                } else {
                     throw '!';
+                }
                 break;
         } //end switch
     } while(true);

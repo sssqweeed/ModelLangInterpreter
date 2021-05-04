@@ -2,6 +2,7 @@ program
 {
     string x = "", y, z = "abcd";
     int c = 1, a = 1, b = 1;
+    bool q = false;
     c = (a+b)/2*2;
     if((c>=100) and (x==z)) {
         read (y);
@@ -17,14 +18,14 @@ program
         x=x+"step";
         break;
     }
-    write (x);
     
-    for(x = 0;;){
+    
+    
+    for(;;){
         goto fin;
         break;
     }
-fin:
-    write(x);
+    
 }@
 
 
@@ -37,8 +38,15 @@ program
     
     z = (a+b)/2*2;
 fin + 1:
-    write(x);
     
+    goto z;
+fin:
+    
+    if (c){
+    
+    } else {
+    
+    }
     break;
 }@
 

@@ -21,7 +21,7 @@ void Parser::analyze(){
             throw "Expected end programm but we have lex with id " + std::to_string(c_type);
         }
         
-        std::cout << "Everything is ok!\n";
+        std::cout << "Everything is ok!\n ";
     } catch (std::string message) {
         std::cout << message;
         std::cout << curr_lex;
@@ -122,7 +122,7 @@ void Parser::constant(){
     
     if (c_type == LEX_STRING_DATA){
         if (type != LEX_STRING){
-            throw std::string("Unexpected string declaration");
+            throw std::string("Unexpected string declaration ");
         }
         
         scan.TID[current_id].put_value(scan.string_data.size());
@@ -146,20 +146,20 @@ void Parser::constant(){
             scan.TID[current_id].put_value(value);
             
             if (type != LEX_INT){
-                throw std::string("Unexpected number declaration");
+                throw std::string("Unexpected number declaration ");
             }
         } else {
             throw "Expected number but we have lex with id " + std::to_string(c_type);
         }
     } else if (c_type == LEX_NUM){
         if (type != LEX_INT){
-            throw std::string("Unexpected number declaration");
+            throw std::string("Unexpected number declaration ");
         }
         scan.TID[current_id].put_value(c_val);
         
     } else if (c_type == LEX_FALSE or c_type == LEX_TRUE){
         if (type != LEX_BOOL){
-            throw std::string("Unexpected true/false declaration");
+            throw std::string("Unexpected true/false declaration ");
         }
         
         if (c_type == LEX_FALSE) {
@@ -209,6 +209,12 @@ void Parser::S(bool flag){
                 get_next_lex();
                 
                 S(false);
+                
+                if(lex_stack.top() != LEX_BOOL){
+                    throw std::string("'if' only works with bool type ");
+                }
+                lex_stack.pop();
+                
                 if (c_type != LEX_RPAREN){
                     throw "Expected ')' but we have lex with id " + std::to_string(c_type);
                 }
@@ -232,6 +238,12 @@ void Parser::S(bool flag){
                 get_next_lex();
                 
                 S(false);
+                
+                if(lex_stack.top() != LEX_BOOL){
+                    throw std::string("'while' only works with bool type ");
+                }
+                lex_stack.pop();
+                
                 if (c_type != LEX_RPAREN){
                     throw "Expected ')' but we have lex with id " + std::to_string(c_type);
                 }
@@ -248,11 +260,21 @@ void Parser::S(bool flag){
                 }
                 get_next_lex();
                 
+                // BUG BUG BUG BUG!!!!))))
                 for (int i = 0; i < 2; i++) {
                     if (c_type == LEX_SEMICOLON) {
                         get_next_lex();
+                        if (i == 1) {
+                            throw std::string("'for(a;b;c)' b can't be empty ");
+                        }
                     } else {
                         S(false);
+                        if (i == 1) {
+                            if(lex_stack.top() != LEX_BOOL){
+                                throw std::string("'for(a;b;c)' b must be bool type ");
+                            }
+                        }
+                        lex_stack.pop();
                         if (c_type != LEX_SEMICOLON) {
                             throw "Expected ';' but we have lex with id " + std::to_string(c_type);
                         }
@@ -329,10 +351,12 @@ void Parser::S(bool flag){
                 
                 
                 S(false);
+                lex_stack.pop();
                 
                 while (c_type == LEX_COMMA) {
                     get_next_lex();
                     S(false);
+                    lex_stack.pop();
                 }
                 if (c_type != LEX_RPAREN){
                     throw "Expected ')' but we have lex with id " + std::to_string(c_type);
@@ -397,7 +421,6 @@ void Parser::S(bool flag){
                 }
                 
                 // check that every type of element match
-                
                 type_of_lex type_stack = lex_stack.top();
                 while (iteration >= 0) {
                     if (type_stack != lex_stack.top()) {
@@ -407,16 +430,32 @@ void Parser::S(bool flag){
                     
                     iteration--;
                 }
+                //there isn't type of operation in stack!
                 
                 get_next_lex();
                 break;
         }
     
     else {
+        int iteration = 0;
         type_ID type;
         while ((type = E()) == normal and c_type == LEX_ASSIGN) {
             get_next_lex();
+            iteration++;
         }
+        
+        type_of_lex type_stack = lex_stack.top();
+        while (iteration >= 0) {
+            if (type_stack != lex_stack.top()) {
+                throw std::string("Type error ");
+            }
+            lex_stack.pop();
+            
+            iteration--;
+        }
+        
+        lex_stack.push(type_stack);
+        //there is type of operation in stack!
     }
 }
 
@@ -498,7 +537,7 @@ Parser::type_ID Parser::F(){
     } else if (c_type == LEX_NOT) {
         //check not
         if (lex_stack.top() != LEX_BOOL){
-            throw std::string("'Not' operation is not applicable to this type");
+            throw std::string("'Not' operation is not applicable to this type ");
         }
         get_next_lex();
         F();
@@ -576,7 +615,7 @@ bool Parser::check_types(){
     // op & bool and or
     
     if(first_op != sec_op){
-        throw std::string("Type error");
+        throw std::string("Type error ");
     }
     
     if (type_of_op == LEX_STRING){
