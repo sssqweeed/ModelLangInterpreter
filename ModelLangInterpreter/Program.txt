@@ -2,8 +2,8 @@ program
 {
     string x = "", y, z = "abcd";
     int c = 1, a = 1, b = 1;
-    c=(a+b)/2*2;
-    if((c>=100) or (x==z)) {
+    c = (a+b)/2*2;
+    if((c>=100) and (x==z)) {
         read (y);
         write (y);
         write(x+y+z,c);
@@ -35,6 +35,7 @@ program
     p + 1=(a+b)/2*2;
     p=(a+b)/2*2;
     
+    z = (a+b)/2*2;
 fin + 1:
     write(x);
     

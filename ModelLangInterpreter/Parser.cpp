@@ -4,11 +4,9 @@
 Parser::Parser(const char* file_name_): scan(file_name_), file_name(file_name_) {  }
 
 void Parser::get_next_lex(){
-    try{
-        curr_lex = scan.get_lex();
-    } catch(char c) {
-        std::cout << "Unexpected character " << c << "\n";
-    }
+    
+    curr_lex = scan.get_lex();
+    
     c_type = curr_lex.get_type();
     c_val = curr_lex.get_value();
 }
@@ -27,6 +25,8 @@ void Parser::analyze(){
     } catch (std::string message) {
         std::cout << message;
         std::cout << curr_lex;
+    } catch(char c) {
+        std::cout << "Unexpected character " << c << "\n";
     }
 }
 
@@ -101,7 +101,7 @@ void Parser::variable(){
 void Parser::operators(){
     while (c_type == LEX_IF or c_type == LEX_ELSE or c_type == LEX_WHILE or c_type == LEX_FOR or
            c_type == LEX_BREAK or c_type == LEX_GOTO or c_type == LEX_READ or
-           c_type == LEX_WRITE or c_type == LEX_IF or c_type == LEX_ID) {
+           c_type == LEX_WRITE or c_type == LEX_IF or c_type == LEX_ID or c_type == LEX_LPAREN) {
         
         S();
     }
@@ -360,7 +360,9 @@ void Parser::S(bool flag){
             default:
                 // {_E=_}E
                 type_ID type;
-                for (int iteration = 0; (type = E()) != not_reference_to_ID; iteration++) {
+                int iteration;
+                
+                for (iteration = 0; (type = E()) != not_reference_to_ID; iteration++) {
                     
                     if (type == undeclared) {
                         throw "Undeclared ID " + std::to_string(c_type);
@@ -393,6 +395,19 @@ void Parser::S(bool flag){
                 if (c_type != LEX_SEMICOLON){
                     throw "Expected ';' but we have lex with id " + std::to_string(c_type);
                 }
+                
+                // check that every type of element match
+                
+                type_of_lex type_stack = lex_stack.top();
+                while (iteration >= 0) {
+                    if (type_stack != lex_stack.top()) {
+                        throw std::string("Type error");
+                    }
+                    lex_stack.pop();
+                    
+                    iteration--;
+                }
+                
                 get_next_lex();
                 break;
         }
@@ -410,8 +425,14 @@ void Parser::S(bool flag){
 Parser::type_ID Parser::E(){
     type_ID type = E1();
     if (c_type == LEX_EQ or c_type == LEX_NEQ or c_type == LEX_GEQ or c_type == LEX_LEQ or c_type == LEX_LSS or c_type == LEX_GTR) {
+        
+        lex_stack.push(c_type);
+        
         get_next_lex();
         E1();
+        
+        check_types();
+        
         type = not_reference_to_ID;
     }
     
@@ -421,9 +442,10 @@ Parser::type_ID Parser::E(){
 Parser::type_ID Parser::E1(){
     type_ID type = T();
     while (c_type == LEX_PLUS or c_type == LEX_MINUS or c_type == LEX_OR){
+        lex_stack.push(c_type);
         get_next_lex();
         T();
-        
+        check_types();
         type = not_reference_to_ID;
     }
     
@@ -433,9 +455,10 @@ Parser::type_ID Parser::E1(){
 Parser::type_ID Parser::T(){
     type_ID type = F();
     while (c_type == LEX_SLASH or c_type == LEX_AND or c_type == LEX_TIMES) {
+        lex_stack.push(c_type);
         get_next_lex();
         F();
-        
+        check_types();
         type = not_reference_to_ID;
     }
     
@@ -445,30 +468,38 @@ Parser::type_ID Parser::T(){
 Parser::type_ID Parser::F(){
     type_ID type = not_reference_to_ID;
     if (c_type == LEX_ID) {
-    
         if(!scan.TID[c_val].get_declare()){
             // mark?
             auto iterator = std::find(marks.begin(), marks.end(), scan.TID[c_val]);
-            if(iterator != marks.end()){
+            if (iterator != marks.end()){
                 type = mark;
             } else {
                 type = undeclared;
-                //throw "Undeclared ID " + std::to_string(c_type);
             }
         } else {
             type = normal;
         }
+        // push type of ID
+        lex_stack.push(scan.TID[c_val].get_type());
         
         get_next_lex();
     } else if (c_type == LEX_NUM) {
+        lex_stack.push(LEX_INT);
         get_next_lex();
     } else if (c_type == LEX_TRUE) {
+        lex_stack.push(LEX_BOOL);
         get_next_lex();
     } else if (c_type == LEX_FALSE) {
+        lex_stack.push(LEX_BOOL);
         get_next_lex();
     } else if (c_type == LEX_STRING_DATA) {
-            get_next_lex();
+        lex_stack.push(LEX_STRING);
+        get_next_lex();
     } else if (c_type == LEX_NOT) {
+        //check not
+        if (lex_stack.top() != LEX_BOOL){
+            throw std::string("'Not' operation is not applicable to this type");
+        }
         get_next_lex();
         F();
     } else if (c_type == LEX_LPAREN) {
@@ -521,4 +552,64 @@ void Parser::find_marks(){
     }
     
     return;
+}
+
+bool Parser::check_types(){
+    type_of_lex sec_op = lex_stack.top();
+    lex_stack.pop();
+    type_of_lex operation = lex_stack.top();
+    lex_stack.pop();
+    type_of_lex first_op = lex_stack.top();
+    lex_stack.pop();
+    
+    type_of_lex result;
+    
+    
+    type_of_lex type_of_op = first_op;
+    
+    // types     : string int bool
+    // operations: + - * / > < >= <= == != and or
+    // not in F()
+    
+    // op & string + == !=
+    // op & int + - * / > < >= <= == !=
+    // op & bool and or
+    
+    if(first_op != sec_op){
+        throw std::string("Type error");
+    }
+    
+    if (type_of_op == LEX_STRING){
+        if(operation == LEX_PLUS){
+            result = LEX_STRING;
+        } else if (operation == LEX_NEQ or
+                   operation == LEX_EQ){
+            result = LEX_BOOL;
+        } else {
+            throw std::string("Invalid operation with string type ");
+        }
+    } else if (type_of_op == LEX_INT){
+        if(operation == LEX_PLUS or operation == LEX_MINUS or
+           operation == LEX_TIMES or operation == LEX_SLASH){
+            result = LEX_INT;
+        } else if (operation == LEX_LSS or operation == LEX_GTR or
+                   operation == LEX_GEQ or operation == LEX_LEQ or
+                   operation == LEX_EQ or operation == LEX_NEQ){
+            result = LEX_BOOL;
+        } else {
+            throw std::string("Invalid operation with int type ");
+        }
+    } else if (type_of_op == LEX_BOOL){
+        if(operation == LEX_OR or operation == LEX_AND){
+            result = LEX_BOOL;
+        } else {
+            throw std::string("Invalid operation with bool type ");
+        }
+    } else {
+        throw std::string("Invalid type ");
+    }
+    
+    lex_stack.push(result);
+    
+    return false;
 }

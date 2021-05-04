@@ -18,9 +18,6 @@ int main(){
 //    
     Parser parser(file_name);
     parser.analyze();
-    
-    
-    // УБРАТЬ PUBLIC!!!
-    parser.scan.TID;
+
     return 0;  
 }

@@ -4,7 +4,7 @@
 #include <stack>
 
 class Parser{
-public:
+private:
     
     enum type_ID{
         normal, mark, undeclared, not_reference_to_ID
@@ -52,6 +52,7 @@ public:
     
     type_ID F();
     
+    bool check_types();
 public:
     Parser(const char* file_name_);
     
