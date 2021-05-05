@@ -125,7 +125,8 @@ void Parser::constant(){
             throw std::string("Unexpected string declaration ");
         }
         
-        scan.TID[current_id].put_value(scan.string_data.size());
+        // put num of row in string_data
+        scan.TID[current_id].put_value(scan.string_data.size() - 1);
         
     } else if (c_type == LEX_MINUS or c_type == LEX_PLUS){
         get_next_lex();
@@ -190,7 +191,13 @@ void Parser::S(bool flag){
      составной оператор |
      оператор-выражение
      
-     E, E1 и тд означают то, что в методичке
+     E-> A{or A}
+     A->B{and B}
+     B-> C {[ == | > | < | !=]  C } 
+     C-> D {[+ | - ] D}
+     D-> F {[ * | / ] F}
+     F->…
+     
      
      {_I=_}E функции I не существует, вызывается E с поверкой
      возвращаемого значения (распознало ли E именно I)
@@ -199,9 +206,18 @@ void Parser::S(bool flag){
      например при false закрывается возможность открыть составной оператор
      */
     
+    
+    // marks def
+    size_t l1, l2;
+    
     if (flag)
+        
         switch (c_type) {
             case LEX_IF:
+                
+                // if(a) S1 else S2
+                //  a  7 !F S1  8  ! S2
+                //  1  2  3  4  5  6  7  8
                 get_next_lex();
                 if (c_type != LEX_LPAREN){
                     throw "Expected '(' but we have lex with id " + std::to_string(c_type);
@@ -209,6 +225,12 @@ void Parser::S(bool flag){
                 get_next_lex();
                 
                 S(false);
+                
+                l1 = poliz.size();
+                // put to l1 7
+                
+                poliz.push_back(Lex(POLIZ_LABEL, 0)); // to 7
+                poliz.push_back(Lex(POLIZ_FGO, 0));
                 
                 if(lex_stack.top() != LEX_BOOL){
                     throw std::string("'if' only works with bool type ");
@@ -220,14 +242,20 @@ void Parser::S(bool flag){
                 }
                 get_next_lex();
                 
-                S();
+                S(); // S1
+                
+                l2 = poliz.size();
+                poliz.push_back(Lex(POLIZ_LABEL, 0)); // to 8
+                poliz.push_back(Lex(POLIZ_GO, 0));
                 
                 if (c_type != LEX_ELSE){
                     throw "Expected else but we have lex with id " + std::to_string(c_type);
                 }
                 get_next_lex();
                 
-                S();
+                poliz[l1] = Lex(POLIZ_LABEL, poliz.size());
+                S(); // S2
+                poliz[l2] = Lex(POLIZ_LABEL, poliz.size());
                 break;
             case LEX_WHILE:
                 cycle_depth++;
@@ -260,7 +288,6 @@ void Parser::S(bool flag){
                 }
                 get_next_lex();
                 
-                // BUG BUG BUG BUG!!!!))))
                 for (int i = 0; i < 2; i++) {
                     if (c_type == LEX_SEMICOLON) {
                         get_next_lex();
@@ -306,7 +333,13 @@ void Parser::S(bool flag){
             case LEX_GOTO:
                 get_next_lex();
                 
-                if (c_type != LEX_ID){
+                if (c_type == LEX_ID){
+                    auto iter = std::find(marks.begin(), marks.end(), scan.TID[c_val]);
+                    
+                    if (iter == marks.end()){
+                        throw "Undeclarated mark " + std::to_string(c_type);
+                    }
+                } else {
                     throw "Expected ID but we have lex with id " + std::to_string(c_type);
                 }
                 get_next_lex();
@@ -328,6 +361,10 @@ void Parser::S(bool flag){
                 if (c_type != LEX_ID){
                     throw "Expected ID but we have lex with id " + std::to_string(c_type) + "\n";
                 }
+                
+                poliz.push_back(Lex(POLIZ_ADDRESS, c_val));
+                poliz.push_back(Lex(LEX_READ));
+                
                 get_next_lex();
                 
                 if (c_type != LEX_RPAREN){
@@ -358,6 +395,8 @@ void Parser::S(bool flag){
                     S(false);
                     lex_stack.pop();
                 }
+                
+                poliz.push_back(Lex(LEX_WRITE));
                 if (c_type != LEX_RPAREN){
                     throw "Expected ')' but we have lex with id " + std::to_string(c_type);
                 }
@@ -394,9 +433,16 @@ void Parser::S(bool flag){
                     
                     if (c_type == LEX_ASSIGN) {
                         //E=E=E...
+                        
                         if (type != normal){
                             throw std::string("Unexpected assign ");
                         }
+                        
+                        // swap top elem of poliz (ID) to address
+                        Lex top_elem = poliz.back();
+                        poliz.pop_back();
+                        poliz.push_back(Lex(POLIZ_ADDRESS, top_elem.get_value()));
+                        
                     } else if (c_type == LEX_COLON) {
                         //ID:operator
                         
@@ -420,6 +466,15 @@ void Parser::S(bool flag){
                     throw "Expected ';' but we have lex with id " + std::to_string(c_type);
                 }
                 
+                // add assingn to poliz
+                int cout_assingn = iteration;
+                
+                while (cout_assingn > 0) {
+                    poliz.push_back(Lex(LEX_ASSIGN));
+                    cout_assingn--;
+                }
+                
+                poliz.push_back(Lex(LEX_SEMICOLON));
                 // check that every type of element match
                 type_of_lex type_stack = lex_stack.top();
                 while (iteration >= 0) {
@@ -507,6 +562,10 @@ Parser::type_ID Parser::T(){
 Parser::type_ID Parser::F(){
     type_ID type = not_reference_to_ID;
     if (c_type == LEX_ID) {
+        //poliz
+        
+        poliz.push_back(Lex(LEX_ID, c_val));
+        //___
         if(!scan.TID[c_val].get_declare()){
             // mark?
             auto iterator = std::find(marks.begin(), marks.end(), scan.TID[c_val]);
@@ -523,21 +582,38 @@ Parser::type_ID Parser::F(){
         
         get_next_lex();
     } else if (c_type == LEX_NUM) {
+        //poliz
+        poliz.push_back(Lex(LEX_NUM, c_val));
+        //___
         lex_stack.push(LEX_INT);
         get_next_lex();
     } else if (c_type == LEX_TRUE) {
+        //poliz
+        poliz.push_back(Lex(LEX_TRUE));
+        //___
         lex_stack.push(LEX_BOOL);
         get_next_lex();
     } else if (c_type == LEX_FALSE) {
+        //poliz
+        poliz.push_back(Lex(LEX_FALSE));
+        //___
+        
         lex_stack.push(LEX_BOOL);
         get_next_lex();
     } else if (c_type == LEX_STRING_DATA) {
+        //poliz
+        auto num_of_row = scan.string_data.size() - 1;
+        poliz.push_back(Lex(LEX_STRING_DATA, num_of_row));
+        //___
         lex_stack.push(LEX_STRING);
         get_next_lex();
     } else if (c_type == LEX_NOT) {
         get_next_lex();
         F();
         //check not
+        //poliz
+        poliz.push_back(Lex(LEX_NOT));
+        //___
         if (lex_stack.top() != LEX_BOOL){
             throw std::string("'Not' operation is not applicable to this type ");
         }
@@ -604,6 +680,10 @@ bool Parser::check_types(){
     type_of_lex result;
     
     
+    //poliz:
+    poliz.push_back(Lex(operation));
+    //_____
+    
     type_of_lex type_of_op = first_op;
     
     // types     : string int bool
@@ -651,4 +731,10 @@ bool Parser::check_types(){
     lex_stack.push(result);
     
     return false;
+}
+
+void Parser::print_poliz(){
+    for (Lex curr_elem : poliz) {
+        std::cout << curr_elem << " ";
+    }
 }

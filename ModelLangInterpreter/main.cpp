@@ -8,5 +8,6 @@ int main(){
     Parser parser(file_name);
     parser.analyze();
 
+    parser.print_poliz();
     return 0;
 }

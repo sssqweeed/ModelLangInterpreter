@@ -202,9 +202,17 @@ std::ostream & operator<<(std::ostream &s, Lex l){
         t = "ID: " + Scanner::TID[l.v_lex].get_name();
     else if(l.t_lex == LEX_STRING_DATA)
         t = "STRING_DATA";
+    else if(l.t_lex == POLIZ_GO)
+        t = "!";
+    else if(l.t_lex == POLIZ_FGO)
+        t = "!F";
+    else if(l.t_lex == POLIZ_ADDRESS)
+        t = "&";
+    else if(l.t_lex == POLIZ_LABEL)
+        t = ":mark:";
     else
         throw l;
-    s << '(' << t << ',' << l.v_lex << ");" << "line: " << l.num_row_in_file <<std::endl;
+    s << '(' << t << ',' << l.v_lex << ");" << "line: " << l.num_row_in_file << std::endl;
     return s;
 }
 

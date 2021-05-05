@@ -53,8 +53,13 @@ private:
     type_ID F();
     
     bool check_types();
+    
 public:
     Parser(const char* file_name_);
+    
+    std::vector<Lex> poliz;
+    
+    void print_poliz();
     
     void analyze();
 };

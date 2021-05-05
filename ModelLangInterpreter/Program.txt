@@ -1,3 +1,10 @@
+program{
+    int a = 1, b = 2, c = 3;
+    string s = "101";
+    bool x = false, y = true;
+    a = -1;
+}@
+
 program
 {
     string x = "", y, z = "abcd";
@@ -19,13 +26,14 @@ program
         break;
     }
     
-    
+    goto fin;
     
     for(;q;){
         goto fin;
         break;
     }
-    
+fin:
+    write(x);
 }@
 
 
@@ -35,7 +43,7 @@ program
     int c = 1, a = 1, b = 1;
     p + 1=(a+b)/2*2;
     p=(a+b)/2*2;
-    
+    read(x and y);
     z = (a+b)/2*2;
 fin + 1:
     
@@ -50,3 +58,11 @@ fin:
     break;
 }@
 
+/*
+fix:
+uncorrect c_val of string id
+goto undeclarated mark
+
+still not fixed:
+a = -1;
+*/
