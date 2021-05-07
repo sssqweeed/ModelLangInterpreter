@@ -14,7 +14,7 @@ private:
     type_of_lex c_type;
     unsigned long c_val;
     type_of_lex type_def;
-    Scanner scan;
+    
     unsigned long current_id;
     int cycle_depth;
     const char* file_name;
@@ -45,21 +45,21 @@ private:
     void S(bool flag = true);
     
     type_ID E();
-    
-    type_ID E1();
-    
-    type_ID T();
-    
+    type_ID A();
+    type_ID B();
+    type_ID C();
+    type_ID D();
     type_ID F();
     
     bool check_types();
     
+    void push_to_poliz(std::stack<size_t>& positions, unsigned long position);
 public:
     Parser(const char* file_name_);
-    
+    Scanner scan;
     std::vector<Lex> poliz;
     
     void print_poliz();
     
-    void analyze();
+    bool analyze();
 };

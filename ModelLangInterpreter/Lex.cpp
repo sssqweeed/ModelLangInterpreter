@@ -1,6 +1,6 @@
 #include "Lex.h"
 
-Lex::Lex(type_of_lex t, unsigned long v, long _num_row_in_file): t_lex(t), v_lex(v),
+Lex::Lex(type_of_lex t, long long v, long _num_row_in_file): t_lex(t), v_lex(v),
                                                                 num_row_in_file(_num_row_in_file){  }
 
 type_of_lex Lex::get_type() const {

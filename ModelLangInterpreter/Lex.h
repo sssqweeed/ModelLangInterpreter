@@ -12,16 +12,16 @@ enum type_of_lex {
     LEX_NUM,
     LEX_ID,
     LEX_STRING_DATA,
-    POLIZ_GO, POLIZ_FGO, POLIZ_ADDRESS, POLIZ_LABEL
+    POLIZ_GO, POLIZ_FGO, POLIZ_ADDRESS, POLIZ_LABEL, POLIZ_BUF
 };
 
 class Lex{
 private:
     type_of_lex t_lex;
-    unsigned long v_lex;
+    long long v_lex;
     long num_row_in_file;
 public:
-    Lex(type_of_lex t = LEX_NULL, unsigned long v = 0, long _num_row_in_file = 0);
+    Lex(type_of_lex t = LEX_NULL, long long v = 0, long _num_row_in_file = 0);
     
     type_of_lex get_type() const;
     

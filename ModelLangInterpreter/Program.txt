@@ -1,8 +1,10 @@
 program{
-    int a = 1, b = 2, c = 3;
-    string s = "101";
-    bool x = false, y = true;
-    a = -1;
+    int a = +1, b = 2, c = 3;
+    string s = "101", s1 = "123";
+    bool x = false, y = true, z = false;
+    a = -(b);
+    
+    
 }@
 
 program
@@ -15,7 +17,6 @@ program
         read (y);
         write (y);
         write(x+y+z,c);
-        
     }
     else
         c=a=21;
@@ -59,10 +60,22 @@ fin:
 }@
 
 /*
+
+add:
+intergterer
+if
+exeption
+assign
+while
+lazy
+
 fix:
-uncorrect c_val of string id
-goto undeclarated mark
+grammar error
+int a = -1;
+10-300;
+a;
+a = -1; исправить везде unsigned
 
 still not fixed:
-a = -1;
+
 */
