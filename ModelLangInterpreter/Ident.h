@@ -33,7 +33,7 @@ public:
     
     void put_assign();
     
-    unsigned long get_value() const;
+    long long get_value() const;
     
-    void put_value(unsigned long v);
+    void put_value(long long v);
 };

@@ -21,6 +21,8 @@ private:
     
     std::stack<type_of_lex> lex_stack;
     std::vector<Ident> marks;
+    std::vector<size_t> break_to_position;
+    std::vector<size_t> marks_positions_in_poliz;
     
     type_of_lex get_cur_type_def() const;
     
@@ -54,6 +56,10 @@ private:
     bool check_types();
     
     void push_to_poliz(std::stack<size_t>& positions, unsigned long position);
+    
+    void pop_break_positions();
+    
+    void pop_goto_positions();
 public:
     Parser(const char* file_name_);
     Scanner scan;

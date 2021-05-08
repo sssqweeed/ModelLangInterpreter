@@ -40,9 +40,9 @@ bool Ident::get_assign() const {
 void Ident::put_assign() {
     assign = true;
 }
-unsigned long Ident::get_value() const {
+long long Ident::get_value() const {
     return value;
 }
-void Ident::put_value(unsigned long v) {
+void Ident::put_value(long long v) {
     value = v;
 }

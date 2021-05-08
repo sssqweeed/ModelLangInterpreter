@@ -34,7 +34,6 @@ void Interpreter::run(){
                 std::string s2 = get_string(op2);
                 
                 stack.push(Lex(LEX_STRING_DATA, parser.scan.string_data.size()));
-                //always LEX_PLUS
                 parser.scan.string_data.push_back(s1 + s2);
                 
             } else if (type_ex == LEX_INT) { // LEX_INT
@@ -145,6 +144,25 @@ void Interpreter::run(){
                 stack.push(Lex(LEX_TRUE));
             } else {
                 stack.push(Lex(LEX_FALSE));
+            }
+        } else if (type_lex == LEX_READ) {
+            auto dst = stack.top();
+            stack.pop();
+            
+            type_of_lex type_ex = get_type_address(dst);
+            if (type_ex == LEX_INT) {
+                long long input;
+                std::cin >> input;
+                parser.scan.TID[dst.get_value()].put_value(input);
+            } else if (type_ex == LEX_STRING) {
+                std::string input;
+                std::cin >> input;
+                parser.scan.TID[dst.get_value()].put_value(parser.scan.string_data.size());
+                parser.scan.string_data.push_back(input);
+            } else if (type_ex == LEX_BOOL) {
+                bool input;
+                std::cin >> input;
+                parser.scan.TID[dst.get_value()].put_value(input);
             }
         }
         position++;

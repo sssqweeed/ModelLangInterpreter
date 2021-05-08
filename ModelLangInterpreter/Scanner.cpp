@@ -210,8 +210,10 @@ std::ostream & operator<<(std::ostream &s, Lex l){
         t = "&";
     else if(l.t_lex == POLIZ_LABEL)
         t = ":mark:";
+    else if(l.t_lex == POLIZ_BUF)
+        t = "BUFBUFBUF";
     else
-        throw l;
+        throw t;
     s << '(' << t << ',' << l.v_lex << ");" << "line: " << l.num_row_in_file << std::endl;
     return s;
 }
