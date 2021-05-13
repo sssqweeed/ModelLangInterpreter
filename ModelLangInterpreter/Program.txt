@@ -1,12 +1,45 @@
 program{
-    int i = 1, j = 1, c = 3;
-    string s = "101", s1 = "123";
-    bool x = false, y = true, z = false;
+    struct Point{
+        int x, y;
+    };
+    struct Point2{
+        int x, y;
+    };
+    struct Animal{
+        string name;
+        int age;
+    };
     
-    i = -(s);
-    write(i);
+    Animal a;
+    Point b;
+    Point2 c;
+    
+    b = c;
 }@
 
+
+
+program{
+    struct Point{
+        int x, y;
+    };
+    struct Animal{
+        string name;
+        int age;
+    };
+    
+    Animal a, b;
+    a.name = "Lul";
+    a.age = 10;
+    b.name = "Jof";
+    b.age = 11;
+    
+    a = b;
+    write(a.name);
+    
+    b.name = "fdf";
+    write(a.name);
+}@
 
 
 program{
@@ -21,10 +54,18 @@ program{
 }@
 
 
+
+
 program{
+    struct Point{
+        int x, y;
+    };
+    
     int i = 1, j = 1, c = 3;
     string s = "101", s1 = "123";
     bool x = false, y = true, z = false;
+    
+    Point p;
     
     while((i < 10)){
         j = 1;
@@ -47,6 +88,11 @@ fin:
 fin2:
     write(true);
 }@
+
+
+
+
+
 
 
 program
@@ -100,22 +146,3 @@ fin:
     }
     break;
 }@
-
-/*
-
-add:
-read
-break
-goto
-for
-goto
-
-fix:
-grammar error ((c=100));
-write(a, ...)
-unsigned lond
-mark
-unar minus
-
-still not fixed:
-*/

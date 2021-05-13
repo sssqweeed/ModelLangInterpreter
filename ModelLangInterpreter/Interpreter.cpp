@@ -101,6 +101,7 @@ void Interpreter::run(){
             stack.pop();
             
             type_of_lex type_ex = get_type_address(dst);
+            
             if (type_ex == LEX_STRING) {
                 auto position_string_data = parser.scan.string_data.size();
                 parser.scan.string_data.push_back(get_string(src));
@@ -116,6 +117,14 @@ void Interpreter::run(){
                 value ? value_to_stack = LEX_TRUE : value_to_stack = LEX_FALSE;
                 parser.scan.TID[dst.get_value()].put_value(value);
                 stack.push(Lex(value_to_stack));
+            } else if (type_ex == LEX_STRUCT) {
+                size_t type_dst = parser.scan.TID[dst.get_value()].get_value();
+                size_t type_src = parser.scan.TID[src.get_value()].get_value();
+                if (type_dst != type_src) {
+                    throw "Type error ";
+                }
+                assign_struct(dst.get_value(), src.get_value());
+                stack.push(dst);
             }
         } else if (type_lex == LEX_SEMICOLON) {
             stack.pop();
@@ -167,8 +176,6 @@ void Interpreter::run(){
         }
         position++;
     }
-    parser.scan.TID;
-    parser.scan.string_data;
     std::cout << "\n";
 }
 
@@ -267,4 +274,16 @@ bool Interpreter::cmp(type_of_lex type_cmp, T val1, T val2){
             break;
     }
     return result;
+}
+
+void Interpreter::assign_struct(long long dst, long long src){
+    if (dst == src) {
+        return;
+    }
+    auto num_declare = parser.scan.TID[dst].get_value();
+    auto count_fields = parser.structures[num_declare].fields.size();
+    
+    for (int i = 1; i <= count_fields; i++) {
+        parser.scan.TID[dst + i] = parser.scan.TID[src + i];
+    }
 }

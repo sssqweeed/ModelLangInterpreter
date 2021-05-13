@@ -19,7 +19,6 @@ private:
     
     friend std::ostream & operator<<(std::ostream &s, Lex l);
     
-    
 public:
     static std::vector<Ident> TID;
     static const char* TW [];

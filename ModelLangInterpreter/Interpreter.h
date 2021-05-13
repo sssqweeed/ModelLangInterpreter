@@ -16,6 +16,8 @@ private:
     template <class T>
     bool cmp(type_of_lex type_cmp, T op1, T op2);
     
+    void assign_struct(long long dst, long long src);
+    
 public:
     explicit Interpreter(const char* file_name);
     void run();

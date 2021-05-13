@@ -92,7 +92,7 @@ Lex Scanner::get_lex(){
                 break;
                 
             case IDENT:
-                if (isalpha(c)|| isdigit(c)){
+                if (isalpha(c)|| isdigit(c) || c == '.'){
                     buf.push_back(c);
                 } else {
                     ungetc(c, fp);

@@ -6,16 +6,29 @@
 class Parser{
 private:
     
+    struct Field_of_struct{
+        std::string name;
+        type_of_lex type;
+        
+        Field_of_struct(std::string _name, type_of_lex _type);
+    };
+    
+    struct Struct{
+        std::string name;
+        std::vector<Field_of_struct> fields;
+        Struct(std::string name, const std::vector<Field_of_struct>& fields = {});
+    };
+    
     enum type_ID{
         normal, mark, undeclared, not_reference_to_ID
     };
     
     Lex curr_lex;
     type_of_lex c_type;
-    unsigned long c_val;
+    long long c_val;
     type_of_lex type_def;
-    
-    unsigned long current_id;
+    long long num_struct;
+    long long current_id;
     int cycle_depth;
     const char* file_name;
     
@@ -30,6 +43,10 @@ private:
     
     bool is_redefinition(Lex lex);
     
+    bool is_redefinition(std::string name, const std::vector<Field_of_struct>& fields);
+    
+    bool is_correct_name();
+    
     void find_marks();
     
     void get_next_lex();
@@ -37,6 +54,16 @@ private:
     void program();
     
     void definitions();
+    
+    void definition_of_structures();
+    
+    bool is_struct_name();
+    
+    void m_alloc_for_struct();
+    
+    std::vector<Field_of_struct> definition_of_structure_fields();
+    
+    void field();
     
     void operators();
     
@@ -64,6 +91,7 @@ public:
     Parser(const char* file_name_);
     Scanner scan;
     std::vector<Lex> poliz;
+    std::vector<Struct> structures;
     
     void print_poliz();
     

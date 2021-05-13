@@ -3,6 +3,10 @@
 
 Parser::Parser(const char* file_name_): scan(file_name_), file_name(file_name_) {  }
 
+Parser::Field_of_struct::Field_of_struct(std::string _name, type_of_lex _type): name(_name), type(_type) {  }
+
+Parser::Struct::Struct(std::string _name, const std::vector<Field_of_struct>& _fields): name(_name), fields(_fields) {  }
+
 void Parser::get_next_lex(){
     
     curr_lex = scan.get_lex();
@@ -43,8 +47,10 @@ void Parser::program(){
             throw "Expected '{' but we have lex with id " + std::to_string(c_type);
         }
         get_next_lex();
-        definitions();
         
+        definition_of_structures();
+        scan.TID;
+        definitions();
         operators();
         
         if (c_type != LEX_END){
@@ -54,9 +60,86 @@ void Parser::program(){
     }
 }
 
+void Parser::definition_of_structures(){
+    while (c_type == LEX_STRUCT){
+        get_next_lex();
+        if (c_type != LEX_ID) {
+            throw "Expected name of structure but we have lex with id " + std::to_string(c_type);
+        }
+        if (is_redefinition(curr_lex)) {
+            throw "Redefinition ID with num in TID " + std::to_string(c_val);
+        }
+        
+        scan.TID[c_val].put_type(LEX_STRUCT_DEF);
+        scan.TID[c_val].put_value(structures.size());
+        
+        std::string name_struct = scan.TID.back().get_name();
+        
+        Struct cur_struct(name_struct);
+        
+        get_next_lex();
+        if (c_type != LEX_BEGIN) {
+            throw "Expected '{' but we have lex with id " + std::to_string(c_type);
+        }
+        get_next_lex();
+        
+        cur_struct.fields = definition_of_structure_fields();
+        
+        structures.push_back(cur_struct);
+        
+        if (c_type != LEX_END) {
+            throw "Expected '}' but we have lex with id " + std::to_string(c_type);
+        }
+        get_next_lex();
+        if (c_type != LEX_SEMICOLON) {
+            throw "Expected ';' but we have lex with id " + std::to_string(c_type);
+        }
+        get_next_lex();
+    }
+}
+
+std::vector<Parser::Field_of_struct> Parser::definition_of_structure_fields(){
+    std::vector<Field_of_struct> fields;
+    
+    while (c_type == LEX_INT or c_type == LEX_BOOL or
+           c_type == LEX_STRING) {
+        
+        set_type_def(c_type);
+        
+        do {
+            get_next_lex();
+            if (c_type != LEX_ID) {
+                throw "Expected ID but we have lex with id " + std::to_string(c_type);
+            }
+            auto field = scan.TID.back();
+            if(is_redefinition(field.get_name(), fields)){
+                throw "Redefinition field of struct " + std::to_string(c_val);
+            }
+            fields.push_back(Field_of_struct(field.get_name(), get_cur_type_def()));
+            scan.TID.pop_back();
+            get_next_lex();
+        } while (c_type == LEX_COMMA);
+        
+        if (c_type != LEX_SEMICOLON) {
+            throw "Expected ';' but we have lex with id " + std::to_string(c_type);
+        }
+        get_next_lex();
+    }
+    return fields;
+}
+
+bool Parser::is_struct_name(){
+    return c_type == LEX_ID and scan.TID[c_val].get_type() == LEX_STRUCT_DEF;
+}
+
 void Parser::definitions(){
     while (c_type == LEX_INT or c_type == LEX_BOOL or
-           c_type == LEX_STRING or c_type == LEX_STRUCT) {
+           c_type == LEX_STRING or is_struct_name()) {
+        
+        if (is_struct_name()) {
+            c_type = LEX_STRUCT;
+            num_struct = c_val;
+        }
         
         set_type_def(c_type);
         
@@ -75,6 +158,25 @@ void Parser::definitions(){
     }
 }
 
+void Parser::m_alloc_for_struct(){
+    for (Ident& elem : scan.TID) {
+        if (elem.get_type() == LEX_STRUCT) {
+            long long num_of_struct = elem.get_value();
+            std::string name_struct = elem.get_name();
+            
+            for (Field_of_struct& field : structures[num_of_struct].fields) {
+                std::string name = name_struct + '.' + field.name;
+                Ident new_id(name);
+                new_id.put_declare();
+                new_id.put_type(field.type);
+                new_id.put_value(0);
+                
+                scan.TID.push_back(new_id);
+            }
+        }
+    }
+}
+
 void Parser::variable(){
     if (c_type != LEX_ID) {
         throw "Expected ID but we have lex with id " + std::to_string(c_type);
@@ -84,6 +186,10 @@ void Parser::variable(){
         throw "Redefinition ID with num in TID " + std::to_string(c_val);
     }
     
+    if (!is_correct_name()){
+        throw std::string("Invalid ID name ");
+    }
+    
     scan.TID[c_val].put_declare();
     scan.TID[c_val].put_type(get_cur_type_def());
     
@@ -91,13 +197,35 @@ void Parser::variable(){
     
     get_next_lex();
     if (c_type == LEX_ASSIGN) {
+        
+        if (c_type == LEX_STRUCT) {
+            throw "Unexpected assign " + std::to_string(c_val);
+        }
+        
         scan.TID[current_id].put_assign();
         get_next_lex();
         constant();
         get_next_lex();
     }
     else {
-        scan.TID[current_id].put_value(-1);
+        if (get_cur_type_def() == LEX_STRUCT) {
+            scan.TID[current_id].put_value(num_struct);
+            
+            long long num_of_struct = scan.TID[current_id].get_value();
+            std::string name_struct = scan.TID[current_id].get_name();
+            
+            for (Field_of_struct& field : structures[num_of_struct].fields) {
+                std::string name = name_struct + '.' + field.name;
+                Ident new_id(name);
+                new_id.put_declare();
+                new_id.put_type(field.type);
+                new_id.put_value(0);
+                
+                scan.TID.push_back(new_id);
+            }
+        } else {
+            scan.TID[current_id].put_value(-1);
+        }
     }
 }
 
@@ -107,13 +235,25 @@ void Parser::operators(){
     }
 }
 
-bool Parser::is_redefinition(Lex lex){
-    auto num_in_TID = lex.get_value();
-    if (num_in_TID == scan.TID.size() - 1){
-        return false;
-    } else {
-        return true;
+bool Parser::is_correct_name(){
+    std::string name = scan.TID[c_val].get_name();
+    if (name.find('.') != -1) {
+        return scan.TID[c_val].get_declare();
     }
+    return true;
+}
+
+bool Parser::is_redefinition(Lex lex){
+    return scan.TID[c_val].get_declare();
+}
+
+bool Parser::is_redefinition(std::string name, const std::vector<Field_of_struct>& fields){
+    for (Field_of_struct field : fields) {
+        if (name == field.name) {
+            return true;
+        }
+    }
+    return false;
 }
 
 void Parser::constant(){
@@ -851,6 +991,7 @@ void Parser::set_type_def(const type_of_lex type){
 
 void Parser::find_marks(){
     Scanner scan(file_name);
+    
     Lex cur_lex = scan.get_lex(), prev_lex;
     
     //empty file
@@ -875,6 +1016,12 @@ void Parser::find_marks(){
     }
     marks_positions_in_poliz = std::vector<size_t>(marks.size());
     
+    for (Ident mark : marks) {
+        std::string name = mark.get_name();
+        if (name.find('.') != -1) {
+            throw std::string("Invalid mark name ");
+        }
+    }
 }
 
 bool Parser::check_types(){
@@ -896,7 +1043,7 @@ bool Parser::check_types(){
     
     type_of_lex type_of_op = first_op;
     
-    // types     : string int bool
+    // types     : string int bool struct
     // operations: + - * / > < >= <= == != and or
     // not in F()
     
